@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Aviator O DIAS</title>
+<style>
+  :root{
+    --bg:#0a0a0f;
+    --surface:#15151d;
+    --surface-alt:#1d1d28;
+    --line:#2a2a38;
+    --red:#ff2d4d;
+    --red-dim:#7a1128;
+    --gold:#f0ac2b;
+    --green:#22d99a;
+    --text:#f2f2f6;
+    --text-dim:#9393a3;
+    --text-faint:#5c5c6c;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .num{
+    font-family:"Arial Narrow",Arial,sans-serif;
+    font-weight:800;
+    letter-spacing:-0.02em;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---------- LOCK ---------- */
+  #lockScreen{
+    position:fixed;inset:0;background:var(--bg);z-index:999;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    padding:24px;text-align:center;
+  }
+  #lockScreen .plane{font-size:40px;transform:rotate(-8deg);}
+  #lockScreen h1{font-size:20px;margin:0;font-weight:700;}
+  #lockScreen p{color:var(--text-dim);font-size:13px;margin:0;max-width:260px;}
+  #lockScreen input{
+    background:var(--surface-alt);border:1px solid var(--line);color:var(--text);
+    font-size:22px;letter-spacing:8px;text-align:center;border-radius:10px;
+    padding:12px;width:180px;
+  }
+  #lockScreen button{
+    background:var(--red);color:#fff;border:none;border-radius:10px;
+    padding:12px 28px;font-size:15px;font-weight:600;
+  }
+  #lockError{color:var(--red);font-size:12px;height:14px;}
+
+  /* ---------- APP SHELL ---------- */
+  #app{display:none;max-width:520px;margin:0 auto;padding-bottom:100px;}
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:16px 18px 8px;
+  }
+  header .brand{display:flex;align-items:center;gap:8px;}
+  header .brand .icon{font-size:18px;transform:rotate(-15deg);}
+  header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:-0.01em;}
+  header .date{font-size:11px;color:var(--text-faint);}
+
+  /* ---------- HERO (banca atual, estilo Aviator) ---------- */
+  .hero{
+    position:relative;margin:8px 16px 18px;padding:26px 18px 20px;
+    border-radius:20px;overflow:hidden;
+    background:radial-gradient(120% 140% at 50% 100%, var(--red-dim) 0%, #12060b 45%, var(--bg) 80%);
+    border:1px solid var(--line);
+    text-align:center;
+  }
+  .hero .rays{
+    position:absolute;inset:0;opacity:.5;
+    background:repeating-conic-gradient(from 0deg at 50% 100%, rgba(255,255,255,0.05) 0deg 4deg, transparent 4deg 16deg);
+    pointer-events:none;
+    transform-origin:50% 100%;
+    animation:pulseRays 3s ease-in-out infinite;
+  }
+  @keyframes pulseRays{
+    0%,100%{opacity:.35; transform:scale(1);}
+    50%{opacity:.65; transform:scale(1.08);}
+  }
+  .hero svg{position:absolute;left:0;bottom:0;width:100%;height:70%;opacity:.9;}
+  .plane-emoji{font-size:26px;text-anchor:middle;dominant-baseline:middle;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.9));}
+  .plane-idle{animation:idleBob 1.6s ease-in-out infinite;}
+  @keyframes idleBob{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-4px);}
+  }
+  .hero .label{position:relative;font-size:11px;color:var(--text-dim);letter-spacing:.02em;}
+  .hero .value{position:relative;font-size:44px;line-height:1.1;margin-top:2px;}
+  .hero .value small{font-size:18px;font-weight:600;color:var(--text-dim);}
+  .hero .sub{position:relative;margin-top:10px;font-size:12px;color:var(--text-dim);
+    display:flex;justify-content:center;gap:14px;flex-wrap:wrap;}
+  .hero .sub b{color:var(--text);font-weight:700;}
+  .hero .goalbar{position:relative;margin-top:12px;height:6px;border-radius:3px;background:#000;overflow:hidden;}
+  .hero .goalbar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--green));}
+
+  /* ---------- TABS ---------- */
+  .tabs{
+    display:flex;gap:6px;margin:0 16px 16px;background:var(--surface);
+    border-radius:12px;padding:4px;border:1px solid var(--line);
+  }
+  .tabs button{
+    flex:1;background:transparent;border:none;color:var(--text-dim);
+    font-size:12.5px;font-weight:600;padding:9px 4px;border-radius:9px;
+  }
+  .tabs button.active{background:var(--surface-alt);color:var(--text);}
+
+  .panel{display:none;padding:0 16px;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;margin-bottom:12px;
+  }
+  .card h2{font-size:12.5px;margin:0 0 10px;color:var(--text-dim);font-weight:600;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .stat .v{font-size:20px;}
+  .stat .v.pos{color:var(--green);}
+  .stat .v.neg{color:var(--red);}
+  .stat .l{font-size:11px;color:var(--text-faint);margin-top:2px;}
+
+  label{display:block;font-size:11.5px;color:var(--text-dim);margin:10px 0 5px;}
+  label:first-child{margin-top:0;}
+  input[type=text],input[type=number],input[type=date]{
+    width:100%;background:var(--surface-alt);border:1px solid var(--line);color:var(--text);
+    border-radius:9px;padding:10px 11px;font-size:14.5px;font-family:inherit;
+  }
+  input:focus{outline:none;border-color:var(--gold);}
+
+  .btn{
+    display:block;width:100%;background:var(--red);color:#fff;border:none;
+    border-radius:11px;padding:13px;font-size:15px;font-weight:700;margin-top:14px;
+  }
+  .btn.secondary{background:var(--surface-alt);color:var(--text);border:1px solid var(--line);}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--text-dim);}
+
+  .row-entry{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--line);
+  }
+  .row-entry:last-child{border-bottom:none;}
+  .row-entry .d{font-size:12.5px;color:var(--text-dim);}
+  .row-entry .b{font-size:13.5px;margin-top:2px;}
+  .row-entry .p{font-size:14px;font-weight:700;text-align:right;}
+  .row-entry .p.pos{color:var(--green);}
+  .row-entry .p.neg{color:var(--red);}
+  .row-entry .m{font-size:10.5px;color:var(--text-faint);text-align:right;}
+  .row-entry .del{background:none;border:none;color:var(--text-faint);font-size:16px;padding:0 0 0 10px;}
+
+  .profiles{display:flex;gap:6px;margin-bottom:4px;}
+  .profiles button{
+    flex:1;background:var(--surface-alt);border:1px solid var(--line);color:var(--text-dim);
+    border-radius:10px;padding:10px 4px;font-size:12px;font-weight:700;
+  }
+  .profiles button.on{border-color:var(--gold);color:var(--text);background:#2a2210;}
+
+  .strategy-out{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px;background:var(--surface-alt);}
+  .strategy-out .grid2 .stat .v{font-size:17px;}
+  .strategy-out .note{font-size:11.5px;color:var(--text-dim);margin-top:10px;line-height:1.5;padding-top:10px;border-top:1px solid var(--line);}
+  .disclaimer{font-size:10.5px;color:var(--text-faint);text-align:center;margin:14px 0 0;line-height:1.5;}
+
+  .empty{text-align:center;color:var(--text-faint);font-size:12.5px;padding:20px 0;}
+  .settings-toggle{background:none;border:none;color:var(--text-faint);font-size:11px;padding:0;margin-top:8px;text-decoration:underline;}
+
+  .hint{font-size:10.5px;color:var(--text-faint);margin-top:4px;}
+  .warn{font-size:11.5px;color:var(--gold);margin-top:10px;padding-top:10px;border-top:1px solid var(--line);line-height:1.5;}
+  .strategy-item{border-bottom:1px solid var(--line);padding:11px 0;}
+  .strategy-item:last-child{border-bottom:none;}
+  .strategy-item .head{display:flex;justify-content:space-between;align-items:center;}
+  .strategy-item .nome{font-size:13.5px;font-weight:700;}
+  .strategy-item .meta{font-size:11px;color:var(--text-faint);margin-top:2px;}
+  .strategy-item .actions{display:flex;gap:8px;margin-top:2px;}
+  .strategy-item .actions button{background:none;border:none;font-size:11.5px;font-weight:600;padding:0;}
+  .strategy-item .actions .usar{color:var(--gold);}
+  .strategy-item .actions .del{color:var(--text-faint);}
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="plane">✈️</div>
+  <h1>Aviator O DIAS</h1>
+  <p>Controle de banca e estratégias de gestão de risco</p>
+  <input type="password" id="lockInput" inputmode="numeric" maxlength="4" placeholder="••••">
+  <div id="lockError"></div>
+  <button onclick="tryUnlock()">Entrar</button>
+</div>
+
+<div id="app">
+  <header>
+    <div class="brand"><span class="icon">✈️</span><h1>Aviator O DIAS</h1></div>
+    <div class="date" id="headerDate"></div>
+  </header>
+
+  <div class="hero">
+    <div class="rays"></div>
+    <svg id="heroCurve" viewBox="0 0 300 140" preserveAspectRatio="none"></svg>
+    <div class="label">Banca atual</div>
+    <div class="value num"><small>R$</small> <span id="heroBanca">0,00</span></div>
+    <div class="sub">
+      <span>Lucro total <b id="heroLucroTotal">R$ 0,00</b></span>
+      <span>Meta de hoje <b id="heroMetaHoje">R$ 0,00</b></span>
+    </div>
+    <div class="goalbar"><i id="heroGoalBar" style="width:0%"></i></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="painel">Painel</button>
+    <button class="tab-btn" data-tab="registro">Registro</button>
+    <button class="tab-btn" data-tab="estrategia">Estratégias</button>
+  </div>
+
+  <!-- PAINEL -->
+  <div class="panel active" id="panel-painel">
+    <div class="card">
+      <h2>Resumo</h2>
+      <div class="grid2">
+        <div class="stat"><div class="v" id="statInicial">R$ 0,00</div><div class="l">Banca inicial geral</div></div>
+        <div class="stat"><div class="v" id="statDias">0</div><div class="l">Dias registrados</div></div>
+        <div class="stat"><div class="v pos" id="statMelhorDia">R$ 0,00</div><div class="l">Melhor dia</div></div>
+        <div class="stat"><div class="v neg" id="statPiorDia">R$ 0,00</div><div class="l">Pior dia</div></div>
+        <div class="stat"><div class="v" id="statDepositos">R$ 0,00</div><div class="l">Total depositado</div></div>
+        <div class="stat"><div class="v" id="statSaques">R$ 0,00</div><div class="l">Total sacado</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Últimos registros</h2>
+      <div id="historicoResumo"></div>
+    </div>
+  </div>
+
+  <!-- REGISTRO DIÁRIO -->
+  <div class="panel" id="panel-registro">
+    <div class="card">
+      <h2>Novo registro do dia</h2>
+      <label>Data</label>
+      <input type="date" id="inputData">
+      <label>Banca inicial do dia</label>
+      <input type="number" id="inputBancaInicial" step="0.01" placeholder="0,00">
+      <label>Banca final do dia</label>
+      <input type="number" id="inputBancaFinal" step="0.01" placeholder="0,00">
+      <label>Meta de lucro do dia</label>
+      <input type="number" id="inputMeta" step="0.01" placeholder="0,00">
+      <label>Observação (opcional)</label>
+      <input type="text" id="inputObs" placeholder="ex: sessão da manhã">
+      <button class="btn" onclick="salvarRegistro()">Salvar registro</button>
+      <button class="settings-toggle" onclick="toggleConfig()">Meta diária padrão / banca inicial geral</button>
+      <div id="configBox" style="display:none;margin-top:10px;">
+        <label>Meta diária padrão (preenche automaticamente)</label>
+        <input type="number" id="inputMetaPadrao" step="0.01" placeholder="0,00" onchange="salvarMetaPadrao()">
+        <label>Banca inicial geral (quando você começou a controlar)</label>
+        <input type="number" id="inputBancaGeral" step="0.01" placeholder="0,00" onchange="salvarBancaGeral()">
+      </div>
+    </div>
+    <div class="card">
+      <h2>Depósitos e Saques</h2>
+      <label>Data</label>
+      <input type="date" id="movData">
+      <label>Tipo</label>
+      <div class="profiles">
+        <button type="button" data-tipo="deposito" class="on" onclick="selecionarTipoMov('deposito')">Depósito</button>
+        <button type="button" data-tipo="saque" onclick="selecionarTipoMov('saque')">Saque</button>
+      </div>
+      <label>Valor</label>
+      <input type="number" id="movValor" step="0.01" placeholder="0,00">
+      <label>Observação (opcional)</label>
+      <input type="text" id="movObs" placeholder="ex: transferência via Pix">
+      <button class="btn secondary" onclick="salvarMovimentacao()">Adicionar movimentação</button>
+      <div id="historicoMov" style="margin-top:14px;"></div>
+    </div>
+    <div class="card">
+      <h2>Histórico</h2>
+      <div id="historicoCompleto"></div>
+    </div>
+    <div class="card">
+      <h2>Backup</h2>
+      <button class="btn secondary" onclick="salvarNoNavegador()">💾 Salvar no navegador</button>
+      <button class="btn secondary" onclick="exportarCopia()">⬇️ Salvar cópia (arquivo)</button>
+      <button class="btn ghost" onclick="document.getElementById('importFile').click()">⬆️ Importar cópia</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="importarCopia(event)">
+      <div class="hint" id="backupMsg" style="text-align:center;margin-top:8px;height:12px;"></div>
+    </div>
+  </div>
+
+  <!-- ESTRATÉGIAS -->
+  <div class="panel" id="panel-estrategia">
+    <div class="card">
+      <h2>Perfil</h2>
+      <div class="profiles">
+        <button data-perfil="protecao" class="on" onclick="selecionarPerfil('protecao')">Seguro</button>
+        <button data-perfil="moderado" onclick="selecionarPerfil('moderado')">Moderado</button>
+        <button data-perfil="agressivo" onclick="selecionarPerfil('agressivo')">Agressivo</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 id="calcTitulo">Calculadora — Seguro</h2>
+
+      <div class="calc-fields" id="fields-protecao">
+        <label>Valor total da rodada (aposta 1 + aposta 2)</label>
+        <input type="number" id="pTotal" step="0.01" placeholder="0,00">
+        <label>Odd de seguro (aposta 1 — recupera o total)</label>
+        <input type="number" id="pOdd1" step="0.01" placeholder="1.30">
+        <div class="hint">Auto cash-out da aposta 1. Quanto menor a odd, mais fácil ela bater.</div>
+        <label>Valor da aposta 1 (seguro)</label>
+        <input type="number" id="pValor1" step="0.01" disabled>
+        <label>Valor da aposta 2 (lucro)</label>
+        <input type="number" id="pValor2" step="0.01" disabled>
+        <label>Lucro desejado na rodada (aposta 2)</label>
+        <input type="number" id="pLucro" step="0.01" placeholder="0,00">
+      </div>
+
+      <div class="calc-fields" id="fields-moderado" style="display:none;">
+        <label>Valor total da rodada (aposta 1 + aposta 2)</label>
+        <input type="number" id="mTotal" step="0.01" placeholder="0,00">
+        <label>Odd de seguro (aposta 1)</label>
+        <input type="number" id="mOdd1" step="0.01" placeholder="1.50">
+        <label>Lucro garantido na aposta de seguro</label>
+        <input type="number" id="mLucroProtecao" step="0.01" placeholder="2,00">
+        <div class="hint">A aposta 1 recupera o total investido + esse valor, mesmo que a aposta 2 não bata.</div>
+        <label>Valor da aposta 1 (seguro)</label>
+        <input type="number" id="mValor1" step="0.01" disabled>
+        <label>Valor da aposta 2 (lucro)</label>
+        <input type="number" id="mValor2" step="0.01" disabled>
+        <label>Lucro total buscado (se as duas baterem)</label>
+        <input type="number" id="mLucroTotal" step="0.01" placeholder="12,00">
+      </div>
+
+      <div class="calc-fields" id="fields-agressivo" style="display:none;">
+        <label>Valor total a investir (distribuído nas duas entradas)</label>
+        <input type="number" id="aTotal" step="0.01" placeholder="0,00">
+        <label>Odd da aposta 1 (retorno sobre o investido)</label>
+        <input type="number" id="aOdd1" step="0.01" placeholder="2.00">
+        <div class="hint">2.00x = retorno de 100% (dobra o valor investido).</div>
+        <label>Valor da aposta 1 (2/3 do total)</label>
+        <input type="number" id="aValor1" step="0.01" disabled>
+        <label>Valor da aposta 2 (1/3 do total)</label>
+        <input type="number" id="aValor2" step="0.01" disabled>
+        <label>Lucro desejado na aposta 2</label>
+        <input type="number" id="aLucro2" step="0.01" placeholder="0,00">
+        <div class="hint">O lucro de cada entrada é calculado sobre o total investido nas duas; se as duas baterem, os resultados se somam.</div>
+      </div>
+
+      <button class="btn" onclick="calcular()">Calcular</button>
+      <div class="strategy-out" id="calcOut" style="display:none;"></div>
+
+      <label style="margin-top:16px;">Nome para salvar esta estratégia</label>
+      <input type="text" id="calcNome" placeholder="ex: Moderado +2 garantido">
+      <button class="btn secondary" onclick="salvarEstrategiaValidada()">Salvar estratégia validada</button>
+      <div class="disclaimer">Aviator é um jogo com resultado gerado por RNG (provably fair). As odds abaixo são o cálculo matemático para as entradas se encaixarem — não uma previsão de que o multiplicador vai bater.</div>
+    </div>
+
+    <div class="card">
+      <h2>Estratégias validadas</h2>
+      <div id="listaEstrategias"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY = 'aviatorBancaV1';
+const LOCK_CODE = '1989';
+
+function loadState(){
+  const raw = localStorage.getItem(KEY);
+  if(raw){
+    try{
+      const s = JSON.parse(raw);
+      if(!s.estrategiasSalvas) s.estrategiasSalvas = [];
+      if(!s.movimentacoes) s.movimentacoes = [];
+      return s;
+    }catch(e){}
+  }
+  return { bancaInicialGeral:null, metaDiariaPadrao:0, registros:[], estrategiasSalvas:[], movimentacoes:[] };
+}
+function saveState(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+let state = loadState();
+let perfilAtual = 'protecao';
+
+function fmt(v){
+  v = Number(v)||0;
+  return v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// ---------- LOCK ----------
+function tryUnlock(){
+  const val = document.getElementById('lockInput').value;
+  if(val === LOCK_CODE){
+    sessionStorage.setItem('aviatorUnlocked','1');
+    document.getElementById('lockScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  } else {
+    document.getElementById('lockError').textContent = 'Código incorreto';
+  }
+}
+document.getElementById('lockInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') tryUnlock();
+});
+if(sessionStorage.getItem('aviatorUnlocked')==='1'){
+  document.getElementById('lockScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  window.addEventListener('DOMContentLoaded', initApp);
+}
+
+// ---------- TABS ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+function toggleConfig(){
+  const box = document.getElementById('configBox');
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+}
+
+// ---------- CORE CALCS ----------
+function bancaAtual(){
+  if(state.registros.length===0) return state.bancaInicialGeral||0;
+  return state.registros[state.registros.length-1].bancaFinal;
+}
+function lucroDia(r){ return r.bancaFinal - r.bancaInicial; }
+function totalDepositos(){ return state.movimentacoes.filter(m=>m.tipo==='deposito').reduce((a,m)=>a+m.valor,0); }
+function totalSaques(){ return state.movimentacoes.filter(m=>m.tipo==='saque').reduce((a,m)=>a+m.valor,0); }
+function lucroTotal(){
+  const inicio = state.bancaInicialGeral!=null ? state.bancaInicialGeral : (state.registros[0]?state.registros[0].bancaInicial:0);
+  const bruto = bancaAtual() - inicio;
+  return bruto - totalDepositos() + totalSaques();
+}
+
+// ---------- RENDER ----------
+function initApp(){
+  document.getElementById('headerDate').textContent = new Date().toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'});
+  document.getElementById('inputData').value = todayISO();
+  document.getElementById('movData').value = todayISO();
+  document.getElementById('inputMetaPadrao').value = state.metaDiariaPadrao || '';
+  document.getElementById('inputBancaGeral').value = state.bancaInicialGeral!=null ? state.bancaInicialGeral : '';
+  selecionarPerfil('protecao');
+  prefillRegistroForm();
+  renderAll();
+}
+
+function prefillRegistroForm(){
+  document.getElementById('inputBancaInicial').value = bancaAtual() || '';
+  document.getElementById('inputMeta').value = state.metaDiariaPadrao || '';
+}
+
+function renderAll(){
+  renderHero();
+  renderPainel();
+  renderHistoricos();
+  renderMovimentacoes();
+  renderEstrategiasSalvas();
+  if(!document.getElementById('pTotal').value){
+    document.getElementById('pTotal').value = bancaAtual() ? (bancaAtual()*0.05).toFixed(2) : '';
+  }
+  if(!document.getElementById('pLucro').value){
+    document.getElementById('pLucro').value = state.metaDiariaPadrao || '';
+  }
+  updateSeguroValores();
+  updateModeradoValores();
+}
+
+function renderHero(){
+  document.getElementById('heroBanca').textContent = fmt(bancaAtual());
+  document.getElementById('heroLucroTotal').textContent = 'R$ ' + fmt(lucroTotal());
+  const metaHoje = state.metaDiariaPadrao || 0;
+  document.getElementById('heroMetaHoje').textContent = 'R$ ' + fmt(metaHoje);
+
+  const hoje = todayISO();
+  const regHoje = state.registros.find(r=>r.data===hoje);
+  const lucroHoje = regHoje ? lucroDia(regHoje) : 0;
+  const perc = metaHoje>0 ? Math.max(0,Math.min(100, (lucroHoje/metaHoje)*100)) : 0;
+  document.getElementById('heroGoalBar').style.width = perc+'%';
+
+  renderCurve();
+}
+
+let planeRafId = null;
+function pararAnimacaoAviao(){
+  if(planeRafId){ cancelAnimationFrame(planeRafId); planeRafId=null; }
+}
+
+function renderCurve(){
+  pararAnimacaoAviao();
+  const svg = document.getElementById('heroCurve');
+  const pontos = [state.bancaInicialGeral!=null?state.bancaInicialGeral:0, ...state.registros.map(r=>r.bancaFinal)];
+  const w=300,h=140;
+
+  if(pontos.length<2){
+    // ainda sem histórico suficiente: avião parado "aquecendo motor" no canto
+    svg.innerHTML = `
+      <text class="plane-emoji plane-idle" x="30" y="${h-45}">✈️</text>
+    `;
+    return;
+  }
+
+  const min = Math.min(...pontos), max = Math.max(...pontos);
+  const range = (max-min)||1;
+  const step = w/(pontos.length-1);
+  const coords = pontos.map((p,i)=>{
+    const x = i*step;
+    const y = h - ((p-min)/range)*h*0.75 - 20;
+    return [x,y];
+  });
+  const path = coords.map((c,i)=> (i===0?'M':'L')+c[0].toFixed(1)+','+c[1].toFixed(1)).join(' ');
+  const areaPath = path + ` L${w},${h} L0,${h} Z`;
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="curveFill" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#ff2d4d" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="#ff2d4d" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" fill="url(#curveFill)" stroke="none"/>
+    <path id="curvePath" d="${path}" fill="none" stroke="#ff2d4d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="plane-emoji" id="planeEmoji" x="0" y="0">✈️</text>
+  `;
+  iniciarAnimacaoAviao();
+}
+
+function iniciarAnimacaoAviao(){
+  const trilha = document.getElementById('curvePath');
+  const aviao = document.getElementById('planeEmoji');
+  if(!trilha || !aviao) return;
+  const comprimento = trilha.getTotalLength();
+  const duracao = 3200; // ms por volta
+  let inicio = null;
+  function passo(ts){
+    if(!inicio) inicio = ts;
+    const decorrido = (ts-inicio) % duracao;
+    const progresso = decorrido/duracao;
+    const pt = trilha.getPointAtLength(progresso*comprimento);
+    aviao.setAttribute('x', pt.x);
+    aviao.setAttribute('y', pt.y-10);
+    planeRafId = requestAnimationFrame(passo);
+  }
+  planeRafId = requestAnimationFrame(passo);
+}
+
+function renderPainel(){
+  document.getElementById('statInicial').textContent = 'R$ '+fmt(state.bancaInicialGeral||0);
+  document.getElementById('statDias').textContent = state.registros.length;
+  document.getElementById('statDepositos').textContent = 'R$ '+fmt(totalDepositos());
+  document.getElementById('statSaques').textContent = 'R$ '+fmt(totalSaques());
+  if(state.registros.length){
+    const lucros = state.registros.map(lucroDia);
+    document.getElementById('statMelhorDia').textContent = 'R$ '+fmt(Math.max(...lucros));
+    document.getElementById('statPiorDia').textContent = 'R$ '+fmt(Math.min(...lucros));
+  } else {
+    document.getElementById('statMelhorDia').textContent = 'R$ 0,00';
+    document.getElementById('statPiorDia').textContent = 'R$ 0,00';
+  }
+
+  const box = document.getElementById('historicoResumo');
+  const ultimos = [...state.registros].slice(-5).reverse();
+  if(ultimos.length===0){
+    box.innerHTML = '<div class="empty">Nenhum registro ainda</div>';
+    return;
+  }
+  box.innerHTML = ultimos.map(r=>rowEntryHTML(r,false)).join('');
+}
+
+function renderHistoricos(){
+  const box = document.getElementById('historicoCompleto');
+  const lista = [...state.registros].reverse();
+  if(lista.length===0){
+    box.innerHTML = '<div class="empty">Nenhum registro ainda</div>';
+    return;
+  }
+  box.innerHTML = lista.map(r=>rowEntryHTML(r,true)).join('');
+}
+
+function rowEntryHTML(r, deletable){
+  const lucro = lucroDia(r);
+  const cls = lucro>=0?'pos':'neg';
+  const metaPerc = r.meta>0 ? Math.round((lucro/r.meta)*100) : null;
+  const dataFmt = new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  return `
+    <div class="row-entry">
+      <div>
+        <div class="d">${dataFmt}${r.obs?' · '+r.obs:''}</div>
+        <div class="b">R$ ${fmt(r.bancaInicial)} → R$ ${fmt(r.bancaFinal)}</div>
+      </div>
+      <div>
+        <div class="p ${cls}">${lucro>=0?'+':''}R$ ${fmt(lucro)}</div>
+        ${metaPerc!==null?`<div class="m">${metaPerc}% da meta</div>`:''}
+      </div>
+      ${deletable?`<button class="del" onclick="excluirRegistro('${r.id}')">✕</button>`:''}
+    </div>
+  `;
+}
+
+// ---------- ACTIONS ----------
+function salvarMetaPadrao(){
+  state.metaDiariaPadrao = parseFloat(document.getElementById('inputMetaPadrao').value)||0;
+  saveState(); renderAll();
+}
+function salvarBancaGeral(){
+  const v = document.getElementById('inputBancaGeral').value;
+  state.bancaInicialGeral = v===''?null:parseFloat(v);
+  saveState(); renderAll(); prefillRegistroForm();
+}
+
+function salvarRegistro(){
+  const data = document.getElementById('inputData').value;
+  const bancaInicial = parseFloat(document.getElementById('inputBancaInicial').value);
+  const bancaFinal = parseFloat(document.getElementById('inputBancaFinal').value);
+  const meta = parseFloat(document.getElementById('inputMeta').value)||0;
+  const obs = document.getElementById('inputObs').value.trim();
+
+  if(!data || isNaN(bancaInicial) || isNaN(bancaFinal)){
+    alert('Preencha data, banca inicial e banca final.');
+    return;
+  }
+  if(state.bancaInicialGeral==null){
+    state.bancaInicialGeral = bancaInicial;
+  }
+
+  const existente = state.registros.find(r=>r.data===data);
+  if(existente){
+    existente.bancaInicial=bancaInicial; existente.bancaFinal=bancaFinal;
+    existente.meta=meta; existente.obs=obs;
+  } else {
+    state.registros.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()), data, bancaInicial, bancaFinal, meta, obs});
+    state.registros.sort((a,b)=> a.data.localeCompare(b.data));
+  }
+  saveState();
+  document.getElementById('inputObs').value='';
+  document.getElementById('inputData').value = todayISO();
+  prefillRegistroForm();
+  renderAll();
+}
+
+function excluirRegistro(id){
+  state.registros = state.registros.filter(r=>r.id!==id);
+  saveState(); renderAll();
+}
+
+// ---------- DEPÓSITOS E SAQUES ----------
+let tipoMovAtual = 'deposito';
+function selecionarTipoMov(t){
+  tipoMovAtual = t;
+  document.querySelectorAll('#panel-registro .profiles button').forEach(b=>b.classList.toggle('on', b.dataset.tipo===t));
+}
+
+function salvarMovimentacao(){
+  const data = document.getElementById('movData').value || todayISO();
+  const valor = parseFloat(document.getElementById('movValor').value);
+  const obs = document.getElementById('movObs').value.trim();
+  if(!valor || valor<=0){
+    alert('Informe um valor válido.');
+    return;
+  }
+  state.movimentacoes.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    data, tipo: tipoMovAtual, valor, obs
+  });
+  state.movimentacoes.sort((a,b)=> a.data.localeCompare(b.data));
+  saveState();
+  document.getElementById('movValor').value='';
+  document.getElementById('movObs').value='';
+  document.getElementById('movData').value = todayISO();
+  renderAll();
+}
+
+function renderMovimentacoes(){
+  const box = document.getElementById('historicoMov');
+  const lista = [...state.movimentacoes].reverse();
+  if(lista.length===0){
+    box.innerHTML = '<div class="empty">Nenhuma movimentação ainda</div>';
+    return;
+  }
+  box.innerHTML = lista.map(m=>{
+    const cls = m.tipo==='deposito' ? 'pos' : 'neg';
+    const sinal = m.tipo==='deposito' ? '+' : '−';
+    const dataFmt = new Date(m.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    return `
+    <div class="row-entry">
+      <div>
+        <div class="d">${dataFmt}${m.obs?' · '+m.obs:''}</div>
+        <div class="b">${m.tipo==='deposito'?'Depósito':'Saque'}</div>
+      </div>
+      <div>
+        <div class="p ${cls}">${sinal}R$ ${fmt(m.valor)}</div>
+      </div>
+      <button class="del" onclick="excluirMovimentacao('${m.id}')">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function excluirMovimentacao(id){
+  state.movimentacoes = state.movimentacoes.filter(m=>m.id!==id);
+  saveState(); renderAll();
+}
+
+// ---------- BACKUP ----------
+function mostrarMsgBackup(texto){
+  const msg = document.getElementById('backupMsg');
+  msg.textContent = texto;
+  setTimeout(()=>{ if(msg.textContent===texto) msg.textContent=''; }, 2200);
+}
+
+function salvarNoNavegador(){
+  saveState();
+  mostrarMsgBackup('Salvo no navegador ✓');
+}
+
+function exportarCopia(){
+  saveState();
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `aviator-o-dias-backup-${todayISO()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  mostrarMsgBackup('Cópia salva ✓');
+}
+
+function importarCopia(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const novo = JSON.parse(reader.result);
+      if(!novo || typeof novo!=='object' || !Array.isArray(novo.registros)){
+        alert('Arquivo inválido.');
+        return;
+      }
+      if(!confirm('Isso vai substituir os dados atuais pelos dados do arquivo. Continuar?')){
+        evt.target.value='';
+        return;
+      }
+      if(!novo.estrategiasSalvas) novo.estrategiasSalvas=[];
+      if(!novo.movimentacoes) novo.movimentacoes=[];
+      state = novo;
+      saveState();
+      document.getElementById('inputMetaPadrao').value = state.metaDiariaPadrao || '';
+      document.getElementById('inputBancaGeral').value = state.bancaInicialGeral!=null ? state.bancaInicialGeral : '';
+      prefillRegistroForm();
+      renderAll();
+      mostrarMsgBackup('Cópia importada ✓');
+    }catch(e){
+      alert('Não foi possível ler o arquivo.');
+    }
+    evt.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ---------- ESTRATÉGIAS ----------
+const PERFIL_LABEL = {protecao:'Seguro', moderado:'Moderado', agressivo:'Agressivo'};
+const PERFIL_DEFAULT_ODD1 = {protecao:1.30, moderado:1.50, agressivo:2.00};
+
+function selecionarPerfil(p){
+  perfilAtual = p;
+  document.querySelectorAll('#panel-estrategia .profiles button').forEach(b=>b.classList.toggle('on', b.dataset.perfil===p));
+  document.querySelectorAll('.calc-fields').forEach(el=>el.style.display='none');
+  document.getElementById('fields-'+p).style.display='block';
+  document.getElementById('calcTitulo').textContent = 'Calculadora — '+PERFIL_LABEL[p];
+  document.getElementById('calcOut').style.display='none';
+  if(p==='protecao' && !document.getElementById('pOdd1').value) document.getElementById('pOdd1').value = PERFIL_DEFAULT_ODD1.protecao;
+  if(p==='moderado' && !document.getElementById('mOdd1').value) document.getElementById('mOdd1').value = PERFIL_DEFAULT_ODD1.moderado;
+  if(p==='agressivo' && !document.getElementById('aOdd1').value) document.getElementById('aOdd1').value = PERFIL_DEFAULT_ODD1.agressivo;
+}
+
+function updateSeguroValores(){
+  const t = parseFloat(document.getElementById('pTotal').value)||0;
+  const o = parseFloat(document.getElementById('pOdd1').value)||0;
+  if(t>0 && o>1){
+    const e1=t/o, e2=t-e1;
+    document.getElementById('pValor1').value = e2>0 ? e1.toFixed(2) : '';
+    document.getElementById('pValor2').value = e2>0 ? e2.toFixed(2) : '';
+  } else {
+    document.getElementById('pValor1').value='';
+    document.getElementById('pValor2').value='';
+  }
+}
+document.getElementById('pTotal').addEventListener('input', updateSeguroValores);
+document.getElementById('pOdd1').addEventListener('input', updateSeguroValores);
+
+function updateModeradoValores(){
+  const t = parseFloat(document.getElementById('mTotal').value)||0;
+  const o = parseFloat(document.getElementById('mOdd1').value)||0;
+  const l1 = parseFloat(document.getElementById('mLucroProtecao').value);
+  if(t>0 && o>1 && !isNaN(l1) && l1>=0){
+    const e1=(t+l1)/o;
+    if(e1<t){
+      const e2=t-e1;
+      document.getElementById('mValor1').value = e1.toFixed(2);
+      document.getElementById('mValor2').value = e2.toFixed(2);
+      return;
+    }
+  }
+  document.getElementById('mValor1').value='';
+  document.getElementById('mValor2').value='';
+}
+document.getElementById('mTotal').addEventListener('input', updateModeradoValores);
+document.getElementById('mOdd1').addEventListener('input', updateModeradoValores);
+document.getElementById('mLucroProtecao').addEventListener('input', updateModeradoValores);
+
+document.getElementById('aTotal').addEventListener('input', ()=>{
+  const t = parseFloat(document.getElementById('aTotal').value)||0;
+  document.getElementById('aValor1').value = t ? (t*2/3).toFixed(2) : '';
+  document.getElementById('aValor2').value = t ? (t/3).toFixed(2) : '';
+});
+
+function calcular(){
+  if(perfilAtual==='protecao') calcularProtecao();
+  else if(perfilAtual==='moderado') calcularModerado();
+  else calcularAgressivo();
+}
+
+function gridOut(items){
+  return '<div class="grid2">' + items.map(([v,l,cls])=>
+    `<div class="stat"><div class="v${cls?(' '+cls):''}">${v}</div><div class="l">${l}</div></div>`
+  ).join('') + '</div>';
+}
+function notaOut(html){ return `<div class="note">${html}</div>`; }
+function avisoOdd(odd2){
+  return odd2>=15 ? `<div class="warn">Odd de ${odd2.toFixed(2)}x é rara — quanto maior o lucro desejado ou menor a aposta, maior o multiplicador exigido.</div>` : '';
+}
+
+// Seguro: aposta 1 recupera exatamente o total; aposta 2 busca o lucro desejado.
+// e1 = total/odd1 · e2 = total-e1 · odd2 = lucro/e2
+function calcularProtecao(){
+  const total = parseFloat(document.getElementById('pTotal').value);
+  const odd1 = parseFloat(document.getElementById('pOdd1').value);
+  const lucro = parseFloat(document.getElementById('pLucro').value);
+  const out = document.getElementById('calcOut');
+  out.style.display='block';
+  if(!total||total<=0||!odd1||odd1<=1||!lucro||lucro<=0){
+    out.innerHTML = '<div class="hint">Preencha valor total, odd de seguro (maior que 1) e lucro desejado.</div>';
+    return;
+  }
+  const e1=total/odd1, e2=total-e1;
+  if(e2<=0){
+    out.innerHTML = '<div class="hint">Essa odd deixa a aposta 1 igual ao total — não sobra valor para a aposta 2. Use uma odd de seguro maior.</div>';
+    return;
+  }
+  document.getElementById('pValor1').value = e1.toFixed(2);
+  document.getElementById('pValor2').value = e2.toFixed(2);
+  const odd2 = lucro/e2;
+  out.innerHTML = gridOut([
+    [fmt2(e1), `Aposta 1 · seguro (odd ${odd1.toFixed(2)}x)`],
+    [fmt2(e2), `Aposta 2 · lucro (odd ${odd2.toFixed(2)}x)`],
+    ['R$ 0,00', 'Se só o seguro bater (empate)'],
+    ['+'+fmt2(lucro), 'Se as duas baterem', 'pos']
+  ]) + notaOut(`Se nenhuma bater: <b style="color:var(--red)">−${fmt2(total)}</b> (perda do total da rodada).`) + avisoOdd(odd2);
+}
+
+// Moderado: aposta 1 recupera o total + um lucro garantido (l1); aposta 2 completa o lucro total buscado.
+// e1 = (total+l1)/odd1 · e2 = total-e1 · odd2 = (ltotal-l1)/e2
+function calcularModerado(){
+  const total = parseFloat(document.getElementById('mTotal').value);
+  const odd1 = parseFloat(document.getElementById('mOdd1').value);
+  const l1 = parseFloat(document.getElementById('mLucroProtecao').value);
+  const ltotal = parseFloat(document.getElementById('mLucroTotal').value);
+  const out = document.getElementById('calcOut');
+  out.style.display='block';
+  if(!total||total<=0||!odd1||odd1<=1||isNaN(l1)||l1<0||!ltotal||ltotal<=0){
+    out.innerHTML = '<div class="hint">Preencha valor total, odd de seguro, lucro garantido e lucro total buscado.</div>';
+    return;
+  }
+  const e1=(total+l1)/odd1;
+  if(e1>=total){
+    out.innerHTML = '<div class="hint">Essa combinação de odd/lucro garantido não deixa valor para a aposta 2. Aumente a odd de seguro ou reduza o lucro garantido.</div>';
+    return;
+  }
+  const e2=total-e1;
+  document.getElementById('mValor1').value = e1.toFixed(2);
+  document.getElementById('mValor2').value = e2.toFixed(2);
+  const payout2 = ltotal-l1;
+  if(payout2<=0){
+    out.innerHTML = '<div class="hint">O lucro total buscado precisa ser maior que o lucro garantido no seguro.</div>';
+    return;
+  }
+  const odd2 = payout2/e2;
+  out.innerHTML = gridOut([
+    [fmt2(e1), `Aposta 1 · seguro (odd ${odd1.toFixed(2)}x)`],
+    [fmt2(e2), `Aposta 2 · lucro (odd ${odd2.toFixed(2)}x)`],
+    ['+'+fmt2(l1), 'Se só o seguro bater', 'pos'],
+    ['+'+fmt2(ltotal), 'Se as duas baterem', 'pos']
+  ]) + notaOut(`Se nenhuma bater: <b style="color:var(--red)">−${fmt2(total)}</b> (perda do total da rodada).`) + avisoOdd(odd2);
+}
+
+// Agressivo: aposta 1 usa odd fixa (retorno %) sobre o valor investido; aposta 2 é 50% desse valor
+// e busca um lucro próprio, independente — os dois resultados não se somam em uma meta única.
+function calcularAgressivo(){
+  const total = parseFloat(document.getElementById('aTotal').value);
+  const odd1 = parseFloat(document.getElementById('aOdd1').value);
+  const lucroDesejado2 = parseFloat(document.getElementById('aLucro2').value);
+  const out = document.getElementById('calcOut');
+  out.style.display='block';
+  if(!total||total<=0||!odd1||odd1<=1||!lucroDesejado2||lucroDesejado2<=0){
+    out.innerHTML = '<div class="hint">Preencha o valor total, a odd da aposta 1 e o lucro desejado na aposta 2.</div>';
+    return;
+  }
+  const e1 = total*2/3;
+  const e2 = total/3;
+  document.getElementById('aValor1').value = e1.toFixed(2);
+  document.getElementById('aValor2').value = e2.toFixed(2);
+  const payout1 = e1*odd1;
+  const payout2 = lucroDesejado2; // odd2 é calculada para que a aposta 2 devolva exatamente esse valor
+  const odd2 = payout2/e2;
+  const lucro1 = payout1-total;      // resultado líquido se só a aposta 1 bater
+  const lucro2 = payout2-total;      // resultado líquido se só a aposta 2 bater
+  const lucroAmbas = payout1+payout2-total; // os dois resultados somados
+  const cls = v => v>=0 ? 'pos' : 'neg';
+  const sinal = v => (v>=0?'+':'−')+fmt2(Math.abs(v));
+  out.innerHTML = gridOut([
+    [fmt2(e1), `Aposta 1 (odd ${odd1.toFixed(2)}x)`],
+    [fmt2(e2), `Aposta 2 · 50% da aposta 1 (odd ${odd2.toFixed(2)}x)`],
+    [sinal(lucro1), 'Resultado se só a aposta 1 bater', cls(lucro1)],
+    [sinal(lucro2), 'Resultado se só a aposta 2 bater', cls(lucro2)]
+  ]) + notaOut(`Se as duas baterem: <b style="color:var(--green)">${sinal(lucroAmbas)}</b> (os dois resultados somados). Se nenhuma bater: <b style="color:var(--red)">−${fmt2(total)}</b> (total investido nas duas).`) + avisoOdd(odd2);
+}
+
+function fmt2(v){ return 'R$ '+fmt(v); }
+
+function salvarEstrategiaValidada(){
+  const nome = document.getElementById('calcNome').value.trim();
+  if(!nome){ alert('Dê um nome para a estratégia.'); return; }
+
+  let inputs, resumo;
+  if(perfilAtual==='protecao'){
+    inputs = {
+      total: document.getElementById('pTotal').value,
+      odd1: document.getElementById('pOdd1').value,
+      lucro: document.getElementById('pLucro').value
+    };
+    if(Object.values(inputs).some(v=>v===''||isNaN(parseFloat(v)))){ alert('Calcule a estratégia antes de salvar.'); return; }
+    resumo = `Total R$ ${fmt(inputs.total)} · odd seguro ${Number(inputs.odd1).toFixed(2)}x · lucro R$ ${fmt(inputs.lucro)}`;
+  } else if(perfilAtual==='moderado'){
+    inputs = {
+      total: document.getElementById('mTotal').value,
+      odd1: document.getElementById('mOdd1').value,
+      l1: document.getElementById('mLucroProtecao').value,
+      ltotal: document.getElementById('mLucroTotal').value
+    };
+    if(Object.values(inputs).some(v=>v===''||isNaN(parseFloat(v)))){ alert('Calcule a estratégia antes de salvar.'); return; }
+    resumo = `Total R$ ${fmt(inputs.total)} · odd seguro ${Number(inputs.odd1).toFixed(2)}x · garantido R$ ${fmt(inputs.l1)} · lucro total R$ ${fmt(inputs.ltotal)}`;
+  } else {
+    inputs = {
+      total: document.getElementById('aTotal').value,
+      odd1: document.getElementById('aOdd1').value,
+      lucro2: document.getElementById('aLucro2').value
+    };
+    if(Object.values(inputs).some(v=>v===''||isNaN(parseFloat(v)))){ alert('Calcule a estratégia antes de salvar.'); return; }
+    resumo = `Total R$ ${fmt(inputs.total)} · odd aposta 1 ${Number(inputs.odd1).toFixed(2)}x · lucro alvo aposta 2 R$ ${fmt(inputs.lucro2)}`;
+  }
+
+  state.estrategiasSalvas.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+    perfil: perfilAtual, nome, inputs, resumo, criadaEm: todayISO()
+  });
+  saveState();
+  document.getElementById('calcNome').value='';
+  renderEstrategiasSalvas();
+}
+
+function renderEstrategiasSalvas(){
+  const box = document.getElementById('listaEstrategias');
+  const lista = [...state.estrategiasSalvas].reverse();
+  if(lista.length===0){
+    box.innerHTML = '<div class="empty">Nenhuma estratégia salva ainda</div>';
+    return;
+  }
+  box.innerHTML = lista.map(s=>`
+    <div class="strategy-item">
+      <div class="head">
+        <div>
+          <div class="nome">${s.nome} <span style="color:var(--text-faint);font-weight:400;">· ${PERFIL_LABEL[s.perfil]}</span></div>
+          <div class="meta">${s.resumo}</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="usar" onclick="usarEstrategiaSalva('${s.id}')">Usar</button>
+        <button class="del" onclick="excluirEstrategiaSalva('${s.id}')">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function usarEstrategiaSalva(id){
+  const s = state.estrategiasSalvas.find(x=>x.id===id);
+  if(!s) return;
+  selecionarPerfil(s.perfil);
+  if(s.perfil==='protecao'){
+    document.getElementById('pTotal').value = s.inputs.total;
+    document.getElementById('pOdd1').value = s.inputs.odd1;
+    document.getElementById('pLucro').value = s.inputs.lucro;
+  } else if(s.perfil==='moderado'){
+    document.getElementById('mTotal').value = s.inputs.total;
+    document.getElementById('mOdd1').value = s.inputs.odd1;
+    document.getElementById('mLucroProtecao').value = s.inputs.l1;
+    document.getElementById('mLucroTotal').value = s.inputs.ltotal;
+  } else {
+    document.getElementById('aTotal').value = s.inputs.total;
+    document.getElementById('aOdd1').value = s.inputs.odd1;
+    document.getElementById('aLucro2').value = s.inputs.lucro2;
+  }
+  document.getElementById('calcNome').value = s.nome;
+  calcular();
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab==='estrategia'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active', p.id==='panel-estrategia'));
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function excluirEstrategiaSalva(id){
+  state.estrategiasSalvas = state.estrategiasSalvas.filter(x=>x.id!==id);
+  saveState(); renderEstrategiasSalvas();
+}
+</script>
+</body>
+</html>
