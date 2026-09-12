@@ -298,6 +298,7 @@
         <div class="stat"><div class="v" id="statPiorDia">R$ 0,00</div><div class="l">Pior dia</div></div>
         <div class="stat"><div class="v" id="statDepositos">R$ 0,00</div><div class="l">Total depositado</div></div>
         <div class="stat"><div class="v" id="statSaques">R$ 0,00</div><div class="l">Total sacado</div></div>
+        <div class="stat"><div class="v" id="statMetasBatidas">0/0</div><div class="l">Dias que bateram a meta</div></div>
       </div>
     </div>
     <div class="card">
@@ -305,8 +306,8 @@
       <div class="chart-bars" id="chartLucroMeta"></div>
     </div>
     <div class="card">
-      <h2>Lucro por estratégia</h2>
-      <div id="chartEstrategias"></div>
+      <h2>Evolução da banca</h2>
+      <div class="chart-bars" id="chartEvolucao"></div>
     </div>
     <div class="card">
       <h2>Últimos registros</h2>
@@ -328,16 +329,6 @@
       <input type="number" id="inputMeta" step="0.01" placeholder="0,00">
       <label>Observação (opcional)</label>
       <input type="text" id="inputObs" placeholder="ex: sessão da manhã">
-      <label>Adicionar estratégia usada no dia</label>
-      <select id="selEstrategiaDetalhe"></select>
-      <div class="grid3" style="margin-top:8px;">
-        <div><label style="margin-top:0;">Entradas</label><input type="number" id="detEntradas" min="0" step="1" placeholder="0"></div>
-        <div><label style="margin-top:0;">Green</label><input type="number" id="detGreen" min="0" step="1" placeholder="0"></div>
-        <div><label style="margin-top:0;">Red</label><input type="number" id="detRed" min="0" step="1" placeholder="0"></div>
-      </div>
-      <button type="button" class="btn secondary" onclick="adicionarDetalheEstrategia()">Adicionar estratégia ao dia</button>
-      <div id="listaDetalheDia" style="margin-top:10px;"></div>
-      <div class="detalhe-total" id="totalEntradasDia">Total: 0 entradas</div>
       <button class="btn" onclick="salvarRegistro()">Salvar registro</button>
       <button class="settings-toggle" onclick="toggleConfig()">Meta diária padrão / banca inicial geral</button>
       <div id="configBox" style="display:none;margin-top:10px;">
@@ -552,15 +543,12 @@ function carregarRegistroDoDia(){
     document.getElementById('inputBancaFinal').value = existente.bancaFinal;
     document.getElementById('inputMeta').value = existente.meta || '';
     document.getElementById('inputObs').value = existente.obs || '';
-    estrategiasDetalheDia = (existente.estrategiasDetalhe||[]).map(d=>({...d}));
   } else {
     document.getElementById('inputBancaInicial').value = bancaAtual() || '';
     document.getElementById('inputBancaFinal').value = '';
     document.getElementById('inputMeta').value = state.metaDiariaPadrao || '';
     document.getElementById('inputObs').value = '';
-    estrategiasDetalheDia = [];
   }
-  renderListaDetalheDia();
 }
 document.getElementById('inputData').addEventListener('change', carregarRegistroDoDia);
 
@@ -570,8 +558,6 @@ function renderAll(){
   renderHistoricos();
   renderMovimentacoes();
   renderEstrategiasSalvas();
-  renderSelectEstrategiaDetalhe();
-  renderListaDetalheDia();
   if(!document.getElementById('pTotal').value){
     document.getElementById('pTotal').value = bancaAtual() ? (bancaAtual()*0.05).toFixed(2) : '';
   }
@@ -618,59 +604,6 @@ function renderHero(){
 let planeRafId = null;
 function pararAnimacaoAviao(){
   if(planeRafId){ cancelAnimationFrame(planeRafId); planeRafId=null; }
-}
-
-// ---------- ENTRADAS POR ESTRATÉGIA (green/red) ----------
-let estrategiasDetalheDia = [];
-function nomesEstrategiasDisponiveis(){
-  const salvas = state.estrategiasSalvas.map(s=>s.nome);
-  if(salvas.length>0) return [...new Set(salvas)];
-  return ['Seguro','Moderado','Agressivo'];
-}
-function renderSelectEstrategiaDetalhe(){
-  const sel = document.getElementById('selEstrategiaDetalhe');
-  const atual = sel.value;
-  sel.innerHTML = nomesEstrategiasDisponiveis().map(n=>`<option value="${n}">${n}</option>`).join('');
-  if(atual) sel.value = atual;
-}
-function adicionarDetalheEstrategia(){
-  const nome = document.getElementById('selEstrategiaDetalhe').value;
-  const entradas = parseInt(document.getElementById('detEntradas').value)||0;
-  const green = parseInt(document.getElementById('detGreen').value)||0;
-  const red = parseInt(document.getElementById('detRed').value)||0;
-  if(!nome || entradas<=0){
-    alert('Escolha a estratégia e informe pelo menos 1 entrada.');
-    return;
-  }
-  const existente = estrategiasDetalheDia.find(d=>d.nome===nome);
-  if(existente){
-    existente.entradas+=entradas; existente.green+=green; existente.red+=red;
-  } else {
-    estrategiasDetalheDia.push({nome, entradas, green, red});
-  }
-  document.getElementById('detEntradas').value='';
-  document.getElementById('detGreen').value='';
-  document.getElementById('detRed').value='';
-  renderListaDetalheDia();
-}
-function removerDetalheEstrategia(nome){
-  estrategiasDetalheDia = estrategiasDetalheDia.filter(d=>d.nome!==nome);
-  renderListaDetalheDia();
-}
-function renderListaDetalheDia(){
-  const box = document.getElementById('listaDetalheDia');
-  if(estrategiasDetalheDia.length===0){
-    box.innerHTML = '<div class="empty">Nenhuma estratégia adicionada ainda</div>';
-  } else {
-    box.innerHTML = estrategiasDetalheDia.map(d=>`
-      <div class="detalhe-row">
-        <span>${d.nome} — ${d.entradas} entrada${d.entradas>1?'s':''} (${d.green}🟢/${d.red}🔴)</span>
-        <button type="button" class="del" onclick="removerDetalheEstrategia('${d.nome.replace(/'/g,"\\'")}')">✕</button>
-      </div>
-    `).join('');
-  }
-  const total = estrategiasDetalheDia.reduce((a,d)=>a+d.entradas,0);
-  document.getElementById('totalEntradasDia').textContent = `Total: ${total} entrada${total!==1?'s':''}`;
 }
 
 function renderCurve(){
@@ -737,37 +670,6 @@ function iniciarAnimacaoAviao(w){
   planeRafId = requestAnimationFrame(passo);
 }
 
-function totalPorEstrategia(){
-  const map = {};
-  state.registros.forEach(r=>{
-    const lucro = lucroDia(r);
-    if(r.estrategiasDetalhe && r.estrategiasDetalhe.length){
-      const totalEntradasDia = r.estrategiasDetalhe.reduce((a,d)=>a+(d.entradas||0),0);
-      r.estrategiasDetalhe.forEach(d=>{
-        const peso = totalEntradasDia>0 ? (d.entradas||0)/totalEntradasDia : 1/r.estrategiasDetalhe.length;
-        map[d.nome] = (map[d.nome]||0) + lucro*peso;
-      });
-    } else if(r.estrategias && r.estrategias.length){
-      const parte = lucro/r.estrategias.length;
-      r.estrategias.forEach(nome=>{ map[nome] = (map[nome]||0) + parte; });
-    }
-  });
-  return map;
-}
-
-function agregarDetalhePorEstrategia(){
-  const map = {};
-  state.registros.forEach(r=>{
-    (r.estrategiasDetalhe||[]).forEach(d=>{
-      if(!map[d.nome]) map[d.nome] = {entradas:0, green:0, red:0};
-      map[d.nome].entradas += d.entradas;
-      map[d.nome].green += d.green;
-      map[d.nome].red += d.red;
-    });
-  });
-  return map;
-}
-
 function renderGraficoLucroMeta(){
   const box = document.getElementById('chartLucroMeta');
   const dados = state.registros.slice(-8);
@@ -794,31 +696,27 @@ function renderGraficoLucroMeta(){
   }).join('');
 }
 
-function renderGraficoEstrategias(){
-  const box = document.getElementById('chartEstrategias');
-  const lucroMap = totalPorEstrategia();
-  const detalheMap = agregarDetalhePorEstrategia();
-  const nomes = new Set([...Object.keys(lucroMap), ...Object.keys(detalheMap)]);
-  if(nomes.size===0){
-    box.innerHTML = '<div class="empty">Nenhuma estratégia registrada ainda</div>';
+function renderGraficoEvolucao(){
+  const box = document.getElementById('chartEvolucao');
+  const pontos = [];
+  if(state.bancaInicialGeral!=null) pontos.push({data:'Início', valor:state.bancaInicialGeral});
+  state.registros.slice(-8).forEach(r=>{
+    const dataFmt = new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+    pontos.push({data:dataFmt, valor:r.bancaFinal});
+  });
+  if(pontos.length===0){
+    box.innerHTML = '<div class="empty">Sem dados ainda</div>';
     return;
   }
-  const entradas = [...nomes].map(nome=>({nome, lucro: lucroMap[nome]||0, det: detalheMap[nome]}));
-  entradas.sort((a,b)=>b.lucro-a.lucro);
-  const maxAbs = Math.max(1, ...entradas.map(e=>Math.abs(e.lucro)));
-  box.innerHTML = entradas.map(e=>{
-    const pct = Math.max(4, Math.abs(e.lucro)/maxAbs*100);
-    const cor = e.lucro>=0 ? 'var(--green)' : 'var(--red)';
-    let sub = '';
-    if(e.det && e.det.entradas>0){
-      const totalResultados = e.det.green+e.det.red;
-      const acerto = totalResultados>0 ? Math.round(e.det.green/totalResultados*100) : null;
-      sub = `${e.det.entradas} entrada${e.det.entradas>1?'s':''}${acerto!==null?` · ${acerto}% acerto (${e.det.green}🟢/${e.det.red}🔴)`:''}`;
-    }
-    return `<div class="strat-row">
-      <div class="head"><span>${e.nome}</span><span style="color:${cor}">${e.lucro>=0?'+':'−'}R$ ${fmt(Math.abs(e.lucro))}</span></div>
-      <div class="track"><div class="fill" style="width:${pct}%;background:${cor}"></div></div>
-      ${sub?`<div class="hint" style="margin-top:4px;">${sub}</div>`:''}
+  const maxVal = Math.max(1, ...pontos.map(p=>p.valor));
+  box.innerHTML = pontos.map(p=>{
+    const altura = Math.min(90, Math.max(2, p.valor/maxVal*100));
+    return `<div class="chart-col">
+      <div class="bararea">
+        <div class="bar-label pos">${fmt(p.valor)}</div>
+        <div class="bar" style="height:${altura}%"></div>
+      </div>
+      <div class="lbl">${p.data}</div>
     </div>`;
   }).join('');
 }
@@ -837,12 +735,16 @@ function renderPainel(){
     elMelhor.className = 'v ' + (melhor>=0?'pos':'neg');
     elPior.textContent = (pior>=0?'+':'−')+'R$ '+fmt(Math.abs(pior));
     elPior.className = 'v ' + (pior>=0?'pos':'neg');
+    const comMeta = state.registros.filter(r=>r.meta>0);
+    const bateram = comMeta.filter(r=>lucroDia(r)>=r.meta).length;
+    document.getElementById('statMetasBatidas').textContent = `${bateram}/${comMeta.length}`;
   } else {
     document.getElementById('statMelhorDia').textContent = 'R$ 0,00';
     document.getElementById('statPiorDia').textContent = 'R$ 0,00';
+    document.getElementById('statMetasBatidas').textContent = '0/0';
   }
   renderGraficoLucroMeta();
-  renderGraficoEstrategias();
+  renderGraficoEvolucao();
 
   const box = document.getElementById('historicoResumo');
   const ultimos = [...state.registros].slice(-5).reverse();
@@ -868,21 +770,11 @@ function rowEntryHTML(r, deletable){
   const cls = lucro>=0?'pos':'neg';
   const metaPerc = r.meta>0 ? Math.round((lucro/r.meta)*100) : null;
   const dataFmt = new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
-  let tagsline = '';
-  if(r.estrategiasDetalhe && r.estrategiasDetalhe.length){
-    tagsline = r.estrategiasDetalhe.map(d=>`${d.nome} ${d.entradas}(${d.green}🟢/${d.red}🔴)`).join(' · ');
-  } else if(r.entradas || (r.estrategias && r.estrategias.length)){
-    const partes = [];
-    if(r.entradas) partes.push(r.entradas+' entrada'+(r.entradas>1?'s':''));
-    if(r.estrategias && r.estrategias.length) partes.push(r.estrategias.join(', '));
-    tagsline = partes.join(' · ');
-  }
   return `
     <div class="row-entry">
       <div>
         <div class="d">${dataFmt}${r.obs?' · '+r.obs:''}</div>
         <div class="b">R$ ${fmt(r.bancaInicial)} → R$ ${fmt(r.bancaFinal)}</div>
-        ${tagsline?`<div class="tagsline">${tagsline}</div>`:''}
       </div>
       <div>
         <div class="p ${cls}">${lucro>=0?'+':''}R$ ${fmt(lucro)}</div>
@@ -910,9 +802,6 @@ function salvarRegistro(){
   const bancaFinal = parseFloat(document.getElementById('inputBancaFinal').value);
   const meta = parseFloat(document.getElementById('inputMeta').value)||0;
   const obs = document.getElementById('inputObs').value.trim();
-  const estrategiasDetalhe = estrategiasDetalheDia.map(d=>({...d}));
-  const entradas = estrategiasDetalhe.reduce((a,d)=>a+d.entradas,0);
-  const estrategias = estrategiasDetalhe.map(d=>d.nome);
 
   if(!data || isNaN(bancaInicial) || isNaN(bancaFinal)){
     alert('Preencha data, banca inicial e banca final.');
@@ -925,16 +814,13 @@ function salvarRegistro(){
   const existente = state.registros.find(r=>r.data===data);
   if(existente){
     existente.bancaInicial=bancaInicial; existente.bancaFinal=bancaFinal;
-    existente.meta=meta; existente.obs=obs; existente.entradas=entradas;
-    existente.estrategias=estrategias; existente.estrategiasDetalhe=estrategiasDetalhe;
+    existente.meta=meta; existente.obs=obs;
   } else {
-    state.registros.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()), data, bancaInicial, bancaFinal, meta, obs, entradas, estrategias, estrategiasDetalhe});
+    state.registros.push({id:crypto.randomUUID?crypto.randomUUID():String(Date.now()), data, bancaInicial, bancaFinal, meta, obs});
     state.registros.sort((a,b)=> a.data.localeCompare(b.data));
   }
   saveState();
   document.getElementById('inputObs').value='';
-  estrategiasDetalheDia = [];
-  renderListaDetalheDia();
   document.getElementById('inputData').value = todayISO();
   carregarRegistroDoDia();
   renderAll();
