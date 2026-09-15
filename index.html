@@ -116,7 +116,7 @@
     50%{opacity:.65; transform:scale(1.08);}
   }
   .hero svg{position:absolute;left:0;bottom:0;width:100%;height:100%;opacity:.95;pointer-events:none;}
-  .plane-emoji{font-size:26px;text-anchor:middle;dominant-baseline:middle;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.9));}
+  .plane-icon{color:#ff2d4d;filter:drop-shadow(0 1px 4px rgba(0,0,0,0.9)) drop-shadow(0 0 7px rgba(255,45,77,0.55));}
   .plane-idle{animation:idleBob 1.6s ease-in-out infinite;}
   @keyframes idleBob{
     0%,100%{transform:translateY(0);}
@@ -946,10 +946,25 @@ function renderCurve(){
   const pontos = [state.bancaInicialGeral!=null?state.bancaInicialGeral:0, ...state.registros.map(r=>r.bancaFinal)];
   const w=300,h=140;
 
+  // Silhueta vetorial do avião (asa baixa, hélice em "X", bolha do piloto),
+  // reaproveitada nos dois estados: parado (idle) e voando na curva.
+  const planeDefs = `
+    <symbol id="planeShape" viewBox="0 0 110 50">
+      <path d="M15,25 C15,20 25,17 45,17 L80,20 C90,21 95,23 100,25 C95,27 90,29 80,30 L45,33 C25,33 15,30 15,25 Z" fill="currentColor"/>
+      <path d="M15,25 L6,9 L21,21 Z" fill="currentColor"/>
+      <path d="M45,17 Q51,6 60,13 Q55,19 46,20 Z" fill="currentColor"/>
+      <path d="M35,26 L14,43 L29,38 L49,28 Z" fill="currentColor" opacity="0.92"/>
+      <circle cx="101" cy="25" r="4.2" fill="currentColor"/>
+      <path d="M92,13 L110,37 M110,13 L92,37" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/>
+    </symbol>
+  `;
+
   if(pontos.length<2){
     // ainda sem histórico suficiente: avião parado "aquecendo motor" no canto
     svg.innerHTML = `
-      <text class="plane-emoji plane-idle" x="30" y="${h-45}">✈️</text>
+      <defs>${planeDefs}</defs>
+      <use class="plane-icon plane-idle" href="#planeShape" width="110" height="50"
+           transform="translate(35,${h-45}) rotate(-16) scale(0.42) translate(-55,-25)"/>
     `;
     return;
   }
@@ -965,6 +980,7 @@ function renderCurve(){
   const path = coords.map((c,i)=> (i===0?'M':'L')+c[0].toFixed(1)+','+c[1].toFixed(1)).join(' ');
   svg.innerHTML = `
     <defs>
+      ${planeDefs}
       <linearGradient id="curveFill" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#ff2d4d" stop-opacity="0.55"/>
         <stop offset="100%" stop-color="#ff2d4d" stop-opacity="0"/>
@@ -975,14 +991,14 @@ function renderCurve(){
       <path d="${path} L${w},${h} L0,${h} Z" fill="url(#curveFill)" stroke="none"/>
     </g>
     <path id="curvePath" d="${path}" fill="none" stroke="#ff2d4d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <text class="plane-emoji" id="planeEmoji" x="0" y="0">✈️</text>
+    <use class="plane-icon" id="planeIconEl" href="#planeShape" width="110" height="50"/>
   `;
   iniciarAnimacaoAviao(w);
 }
 
 function iniciarAnimacaoAviao(w){
   const trilha = document.getElementById('curvePath');
-  const aviao = document.getElementById('planeEmoji');
+  const aviao = document.getElementById('planeIconEl');
   const revealRect = document.getElementById('revealRect');
   if(!trilha || !aviao) return;
   const comprimento = trilha.getTotalLength();
@@ -995,10 +1011,12 @@ function iniciarAnimacaoAviao(w){
     const t = decorrido/duracao;
     // curva de aceleração: começa devagar (decolagem) e acelera no fim (igual ao multiplicador do Aviator)
     const progresso = Math.pow(t, 2.2);
-    const pt = trilha.getPointAtLength(progresso*comprimento);
+    const distAtual = progresso*comprimento;
+    const pt = trilha.getPointAtLength(distAtual);
+    const pt2 = trilha.getPointAtLength(Math.min(comprimento, distAtual+2));
+    const angulo = Math.atan2(pt2.y-pt.y, pt2.x-pt.x) * 180/Math.PI;
     const flutua = Math.sin(ts/450)*3;
-    aviao.setAttribute('x', pt.x);
-    aviao.setAttribute('y', pt.y-10+flutua);
+    aviao.setAttribute('transform', `translate(${pt.x.toFixed(1)},${(pt.y-10+flutua).toFixed(1)}) rotate(${angulo.toFixed(1)}) scale(0.42) translate(-55,-25)`);
     trilha.style.strokeDashoffset = comprimento*(1-progresso);
     if(revealRect) revealRect.setAttribute('width', (pt.x).toFixed(1));
     planeRafId = requestAnimationFrame(passo);
